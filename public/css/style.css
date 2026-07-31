@@ -142,8 +142,8 @@ button.warn-btn { background: var(--warn); color: #2a1e00; }
 
 .map-box { height: 320px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; background: var(--surface-2); }
 
-.admin-menu { padding: 14px; }
-.admin-nav { display: flex; gap: 10px; }
-.admin-nav .nav-btn { width: auto; flex: 1; padding: 10px 16px; }
-.admin-nav .nav-btn.active { background: var(--accent); color: #06201d; border-color: transparent; }
-.admin-nav .nav-btn.secondary.active { background: var(--accent); color: #06201d; }
+.tab-menu { padding: 14px; }
+.tab-nav { display: flex; gap: 10px; }
+.tab-nav .nav-btn { width: auto; flex: 1; padding: 10px 16px; }
+.tab-nav .nav-btn.active { background: var(--accent); color: #06201d; border-color: transparent; }
+.tab-nav .nav-btn.secondary.active { background: var(--accent); color: #06201d; }

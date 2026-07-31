@@ -9,7 +9,9 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "admin": "node make-admin.js",
+    "create-user": "node create-user.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

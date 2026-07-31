@@ -27,9 +27,9 @@ L'appli est prête pour un déploiement serverless (`vercel.json` inclus : les r
    vercel deploy --prod
    ```
    ou via un push sur le dépôt Git connecté au projet Vercel.
-4. Crée un compte admin une fois en ligne, en exécutant `make-admin.js` **en local** avec `DATABASE_URL` pointée vers la même base Neon (copie-la depuis les variables d'environnement Vercel dans ton `.env` local) :
+4. Crée tes comptes une fois en ligne, en exécutant `create-user.js` **en local** avec `DATABASE_URL` pointée vers la même base Neon (copie-la depuis les variables d'environnement Vercel dans ton `.env` local) :
    ```bash
-   node make-admin.js ton_pseudo
+   node create-user.js ton_pseudo un_mot_de_passe admin
    ```
 
 Les tables Postgres (`users`, `commandes`) sont créées automatiquement au premier appel API (`CREATE TABLE IF NOT EXISTS`), pas besoin de migration manuelle.
@@ -42,12 +42,19 @@ Les tables Postgres (`users`, `commandes`) sont créées automatiquement au prem
 - Seule la fenêtre d'autorisation native du navigateur (que l'on ne peut pas masquer) peut laisser deviner qu'une localisation est demandée — aucun texte ni champ ajouté par l'appli n'en fait mention.
 - Dès l'envoi, la commande est **définitivement validée** : l'utilisateur ne peut plus la revoir, la modifier ni la supprimer.
 
-### Compte admin
-Aucune inscription admin publique. Pour créer un admin (voir aussi la section déploiement ci-dessus) :
+### Comptes utilisateurs
+Aucune inscription publique dans l'appli : les comptes sont créés uniquement par toi, via un script en local (voir aussi la section déploiement ci-dessus) :
 ```bash
-node make-admin.js ton_pseudo
+node create-user.js pseudo mot_de_passe        # compte utilisateur normal
+node create-user.js pseudo mot_de_passe admin  # compte admin
 ```
-Puis déconnexion/reconnexion pour que le rôle soit pris en compte.
+Pour promouvoir un compte déjà existant en admin :
+```bash
+node make-admin.js pseudo
+```
+Une déconnexion/reconnexion est nécessaire pour que le rôle soit pris en compte.
+
+Chaque utilisateur peut changer son propre mot de passe depuis l'onglet **Paramètres** de son espace (`/dashboard.html`), en renseignant son mot de passe actuel.
 
 Le panneau admin (`/admin.html`) propose un menu avec deux vues :
 - **Ajouter une commande** : même formulaire que côté utilisateur, la commande créée est immédiatement validée
@@ -61,10 +68,11 @@ Le panneau admin (`/admin.html`) propose un menu avec deux vues :
 commandeapp/
 ├── server.js              → routes API (auth, commandes, admin)
 ├── db.js                  → connexion Postgres (Neon) + requêtes
-├── make-admin.js          → script pour promouvoir un compte en admin
+├── create-user.js         → script pour créer un compte (utilisateur ou admin)
+├── make-admin.js          → script pour promouvoir un compte existant en admin
 ├── vercel.json            → config de déploiement (routes API vs fichiers statiques)
 ├── public/
-│   ├── index.html          → connexion / inscription
+│   ├── index.html          → connexion
 │   ├── dashboard.html      → formulaire de commande
 │   ├── admin.html          → panneau admin (ajout / liste / carte)
 │   ├── css/style.css
@@ -80,7 +88,8 @@ commandeapp/
 - Toutes les routes de commandes exigent une session active
 - Les routes admin vérifient explicitement le rôle côté serveur (pas seulement côté interface)
 - Le verrouillage "validée" est appliqué **côté serveur** (dans les requêtes SQL elles-mêmes), pas seulement caché dans l'interface — impossible à contourner en modifiant le HTML/JS du navigateur
-- **Anti-bruteforce** : `/api/login` et `/api/register` limitées à 15 tentatives par IP toutes les 15 minutes (`express-rate-limit`) — en environnement serverless, ce compteur est en mémoire par instance et n'est donc pas parfaitement global
+- **Anti-bruteforce** : `/api/login` limitée à 15 tentatives par IP toutes les 15 minutes (`express-rate-limit`) — en environnement serverless, ce compteur est en mémoire par instance et n'est donc pas parfaitement global
+- Le changement de mot de passe (`/api/me/password`) exige le mot de passe actuel
 - **En-têtes de sécurité HTTP** via `helmet`
 
 ### Variable `NODE_ENV`

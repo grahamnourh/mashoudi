@@ -45,6 +45,62 @@ function tryGetLocation() {
 
 tryGetLocation();
 
+// --- Menu : bascule entre "Nouvelle commande" et "Paramètres" ---
+const navCommande = document.getElementById("nav-commande");
+const navSettings = document.getElementById("nav-settings");
+const viewCommande = document.getElementById("view-commande");
+const viewSettings = document.getElementById("view-settings");
+
+navCommande.addEventListener("click", () => {
+  navCommande.classList.add("active");
+  navSettings.classList.remove("active");
+  viewCommande.style.display = "block";
+  viewSettings.style.display = "none";
+});
+
+navSettings.addEventListener("click", () => {
+  navSettings.classList.add("active");
+  navCommande.classList.remove("active");
+  viewSettings.style.display = "block";
+  viewCommande.style.display = "none";
+});
+
+// --- Changement de mot de passe ---
+document.getElementById("password-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorBox = document.getElementById("password-error");
+  const successBox = document.getElementById("password-success");
+  errorBox.style.display = "none";
+  successBox.style.display = "none";
+
+  const currentPassword = document.getElementById("current-password").value;
+  const newPassword = document.getElementById("new-password").value;
+  const confirmPassword = document.getElementById("confirm-password").value;
+
+  if (newPassword !== confirmPassword) {
+    errorBox.textContent = "Les deux mots de passe ne correspondent pas.";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  const res = await fetch("/api/me/password", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    errorBox.textContent = data.error || "Erreur.";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  successBox.textContent = "Mot de passe modifié ✓";
+  successBox.style.display = "block";
+  document.getElementById("password-form").reset();
+});
+
 // --- Création d'une commande ---
 document.getElementById("commande-form").addEventListener("submit", async (e) => {
   e.preventDefault();

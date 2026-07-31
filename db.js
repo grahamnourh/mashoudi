@@ -60,6 +60,11 @@ module.exports = {
     return sql`UPDATE users SET role = ${role} WHERE username = ${username}`;
   },
 
+  updatePasswordHash: async (id, passwordHash) => {
+    await ensureSchema();
+    return sql`UPDATE users SET password_hash = ${passwordHash} WHERE id = ${id}`;
+  },
+
   // ================= Commandes =================
 
   // Crée une commande directement validée : l'utilisateur ne la revoit plus ensuite.

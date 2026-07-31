@@ -18,7 +18,14 @@
   <a href="/admin.html"><button type="button">Ouvrir le panneau admin</button></a>
 </div>
 
-<div class="card">
+<div class="card tab-menu">
+  <div class="tab-nav">
+    <button type="button" class="small nav-btn active" id="nav-commande">Nouvelle commande</button>
+    <button type="button" class="small secondary nav-btn" id="nav-settings">Paramètres</button>
+  </div>
+</div>
+
+<div class="card" id="view-commande">
   <h1>Nouvelle commande</h1>
   <p class="subtitle">Le nom et la quantité sont obligatoires. Une fois validée, la commande n'est plus consultable.</p>
 
@@ -36,6 +43,31 @@
     </div>
 
     <button type="submit" id="submit-btn" disabled>Patientez…</button>
+  </form>
+</div>
+
+<div class="card" style="display:none;" id="view-settings">
+  <h1>Paramètres</h1>
+  <p class="subtitle">Modifier ton mot de passe.</p>
+
+  <div class="msg error" id="password-error"></div>
+  <div class="msg success" id="password-success"></div>
+
+  <form id="password-form">
+    <div class="field">
+      <label>Mot de passe actuel *</label>
+      <input type="password" id="current-password" required autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>Nouveau mot de passe *</label>
+      <input type="password" id="new-password" required minlength="6" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label>Confirmer le nouveau mot de passe *</label>
+      <input type="password" id="confirm-password" required minlength="6" autocomplete="new-password">
+    </div>
+
+    <button type="submit">Changer le mot de passe</button>
   </form>
 </div>
 

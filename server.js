@@ -8,8 +8,8 @@ const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const bcrypt = require("bcryptjs");
 const {
-  createUser,
   findUserByUsername,
+  updatePasswordHash,
   createCommande,
   listAllCommandes,
   updateCommandeAsAdmin,
@@ -35,7 +35,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Limite les tentatives de connexion et de création de compte (protection anti-bruteforce/spam)
+// Limite les tentatives de connexion (protection anti-bruteforce)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 15, // 15 tentatives max par IP sur la fenêtre
@@ -90,26 +90,8 @@ function asyncHandler(fn) {
 }
 
 // ============ ROUTES AUTH ============
-
-app.post("/api/register", authLimiter, asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ error: "Nom d'utilisateur et mot de passe requis." });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ error: "Le mot de passe doit faire au moins 6 caractères." });
-  }
-  if (await findUserByUsername(username)) {
-    return res.status(409).json({ error: "Ce nom d'utilisateur est déjà pris." });
-  }
-
-  const passwordHash = await bcrypt.hash(password, 10);
-  const user = await createUser(username, passwordHash);
-
-  setAuthCookie(res, { userId: user.id, username, role: "user" });
-  res.json({ ok: true, username, role: "user" });
-}));
+// Pas d'inscription publique : les comptes sont créés par l'administrateur via
+// `node create-user.js <nom> <mot_de_passe> [role]`.
 
 app.post("/api/login", authLimiter, asyncHandler(async (req, res) => {
   const { username, password } = req.body;
@@ -139,6 +121,28 @@ app.get("/api/me", (req, res) => {
     res.json({ connected: false });
   }
 });
+
+// Modifier son propre mot de passe (nécessite le mot de passe actuel)
+app.put("/api/me/password", requireAuth, asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: "Les deux champs sont obligatoires." });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: "Le nouveau mot de passe doit faire au moins 6 caractères." });
+  }
+
+  const user = await findUserByUsername(req.user.username);
+  if (!user) return res.status(404).json({ error: "Compte introuvable." });
+
+  const valid = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!valid) return res.status(401).json({ error: "Mot de passe actuel incorrect." });
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await updatePasswordHash(user.id, newHash);
+  res.json({ ok: true });
+}));
 
 // ============ ROUTES COMMANDES (utilisateur) ============
 
