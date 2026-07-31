@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommandeApp — Mes commandes</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> CommandeApp</div>
+  <span id="user-badge"></span>
+</header>
+
+<div class="card" id="admin-link-card" style="display:none;">
+  <p class="subtitle" style="margin-bottom:12px;">Tu es connecté en tant qu'administrateur.</p>
+  <a href="/admin.html"><button type="button">Ouvrir le panneau admin</button></a>
+</div>
+
+<div class="card">
+  <h1>Nouvelle commande</h1>
+  <p class="subtitle">Le nom et la quantité sont obligatoires. Une fois validée, la commande n'est plus consultable.</p>
+
+  <div class="msg error" id="form-error"></div>
+  <div class="msg success" id="form-success"></div>
+
+  <form id="commande-form">
+    <div class="field">
+      <label>Nom *</label>
+      <input type="text" id="nom" required>
+    </div>
+    <div class="field">
+      <label>Quantité *</label>
+      <input type="number" id="quantite" min="1" step="1" required>
+    </div>
+
+    <button type="submit" id="submit-btn" disabled>Patientez…</button>
+  </form>
+</div>
+
+<div class="card">
+  <button class="secondary" id="logout-btn">Se déconnecter</button>
+</div>
+
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

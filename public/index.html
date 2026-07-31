@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommandeApp — Connexion</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> CommandeApp</div>
+</header>
+
+<div class="card" id="login-card">
+  <h1>Connexion</h1>
+  <p class="subtitle">Accède à ton compte pour continuer.</p>
+
+  <div class="msg error" id="login-error"></div>
+
+  <form id="login-form">
+    <div class="field">
+      <label>Nom d'utilisateur</label>
+      <input type="text" id="login-username" required autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="login-password" required autocomplete="current-password">
+    </div>
+    <button type="submit">Se connecter</button>
+  </form>
+
+  <div class="switch-link">Pas encore de compte ? <a id="show-register">Créer un compte</a></div>
+</div>
+
+<div class="card" id="register-card" style="display:none;">
+  <h1>Créer un compte</h1>
+  <p class="subtitle">Choisis un nom d'utilisateur et un mot de passe (6 caractères min).</p>
+
+  <div class="msg error" id="register-error"></div>
+
+  <form id="register-form">
+    <div class="field">
+      <label>Nom d'utilisateur</label>
+      <input type="text" id="register-username" required autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="register-password" required autocomplete="new-password">
+    </div>
+    <button type="submit">Créer le compte</button>
+  </form>
+
+  <div class="switch-link">Déjà inscrit ? <a id="show-login">Se connecter</a></div>
+</div>
+
+<script src="/js/auth.js"></script>
+</body>
+</html>
