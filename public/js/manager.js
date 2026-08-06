@@ -1,4 +1,4 @@
-// admin.js
+// manager.js
 
 fetch("/api/me")
   .then((r) => r.json())
@@ -7,11 +7,11 @@ fetch("/api/me")
       window.location.href = "/index.html";
       return;
     }
-    if (data.role !== "admin") {
+    if (data.role !== "manager") {
       window.location.href = "/dashboard.html";
       return;
     }
-    document.getElementById("user-badge").textContent = "@" + data.username + " (admin)";
+    document.getElementById("user-badge").textContent = "@" + data.username + " (manager)";
   });
 
 // --- Menu : bascule entre "Tableau des commandes" et "Ajouter une commande" ---
@@ -39,7 +39,7 @@ navAdd.addEventListener("click", () => {
 });
 
 // --- Le tableau est la vue principale : on le charge dès l'arrivée sur la page ---
-loadAllCommandes();
+loadCommandes();
 
 // --- Capture silencieuse de la position (nécessaire pour créer une commande) ---
 const submitBtn = document.getElementById("submit-btn");
@@ -68,7 +68,7 @@ function tryGetLocation() {
 
 tryGetLocation();
 
-// --- Création d'une commande (admin) ---
+// --- Création d'une commande ---
 document.getElementById("commande-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorBox = document.getElementById("form-error");
@@ -101,10 +101,11 @@ document.getElementById("commande-form").addEventListener("submit", async (e) =>
   document.getElementById("commande-form").reset();
 });
 
+// --- Liste des commandes (tableau, lecture seule) ---
 let allCommandes = [];
 
-async function loadAllCommandes() {
-  const res = await fetch("/api/admin/commandes");
+async function loadCommandes() {
+  const res = await fetch("/api/manager/commandes");
   if (!res.ok) return;
   allCommandes = await res.json();
   applyFilters();
@@ -137,89 +138,22 @@ function applyFilters() {
   document.getElementById("total-quantite-cell").textContent = totalQuantite;
   document.getElementById("total-cout-cell").textContent = formatPrixTotal(totalQuantite);
 
-  updateMapMarkers(filtered);
-
-  const tbody = document.getElementById("admin-commandes-tbody");
+  const tbody = document.getElementById("commandes-tbody");
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-dim);">Aucune commande.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-dim);">Aucune commande.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filtered.map(renderCommandeRow).join("");
-  attachHandlers();
-}
-
-["filter-user", "filter-date", "filter-nom"].forEach((id) => {
-  document.getElementById(id).addEventListener("input", applyFilters);
-});
-document.getElementById("filter-reset").addEventListener("click", () => {
-  document.getElementById("filter-user").value = "";
-  document.getElementById("filter-date").value = "";
-  document.getElementById("filter-nom").value = "";
-  applyFilters();
-});
-
-// --- Carte OpenStreetMap : un marqueur par commande géolocalisée ---
-let map = null;
-let markersLayer = null;
-
-function ensureMap() {
-  if (map) return;
-  map = L.map("map").setView([46.6034, 1.8883], 5);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-  }).addTo(map);
-  markersLayer = L.layerGroup().addTo(map);
-}
-
-function updateMapMarkers(commandes) {
-  ensureMap();
-  markersLayer.clearLayers();
-
-  const points = [];
-  commandes.forEach((c) => {
-    if (c.latitude == null || c.longitude == null) return;
-    L.marker([c.latitude, c.longitude])
-      .bindPopup(`<strong>${escapeHtml(c.nom)}</strong><br>qté ${c.quantite}<br>@${escapeHtml(c.username)}`)
-      .addTo(markersLayer);
-    points.push([c.latitude, c.longitude]);
-  });
-
-  if (points.length > 0) {
-    map.fitBounds(points, { padding: [30, 30], maxZoom: 14 });
-  }
-  setTimeout(() => map.invalidateSize(), 0);
-}
-
-function renderCommandeRow(c) {
-  return `
-    <tr data-id="${c.id}">
+  tbody.innerHTML = filtered.map((c) => `
+    <tr>
       <td>@${escapeHtml(c.username)}</td>
       <td>${new Date(c.created_at).toLocaleString("fr-FR")}</td>
-      <td class="cell-nom">${escapeHtml(c.nom)}</td>
-      <td class="cell-quantite">${c.quantite}</td>
+      <td>${escapeHtml(c.nom)}</td>
+      <td>${c.quantite}</td>
       <td>${formatPrixTotal(c.quantite)}</td>
       <td><input type="text" class="comment-input" data-id="${c.id}" value="${escapeAttr(c.commentaire || "")}" placeholder="Commentaire…"></td>
-      <td class="entry-actions">
-        <button type="button" class="small secondary edit-btn" data-id="${c.id}">Modifier</button>
-        <button type="button" class="small danger delete-btn" data-id="${c.id}">Supprimer</button>
-      </td>
-    </tr>`;
-}
-
-function attachHandlers() {
-  document.querySelectorAll(".delete-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("Supprimer définitivement cette commande ?")) return;
-      const res = await fetch(`/api/admin/commandes/${btn.dataset.id}`, { method: "DELETE" });
-      if (res.ok) loadAllCommandes();
-    });
-  });
-
-  document.querySelectorAll(".edit-btn").forEach((btn) => {
-    btn.addEventListener("click", () => openEditForm(btn.dataset.id));
-  });
+    </tr>
+  `).join("");
 
   document.querySelectorAll(".comment-input").forEach((input) => {
     input.addEventListener("change", () => saveComment(input));
@@ -248,34 +182,15 @@ async function saveComment(input) {
   if (c) c.commentaire = commentaire;
 }
 
-function openEditForm(id) {
-  const row = document.querySelector(`tr[data-id="${id}"]`);
-  const nomActuel = row.querySelector(".cell-nom").textContent.trim();
-  const qteActuelle = row.querySelector(".cell-quantite").textContent.trim();
-
-  row.querySelector(".cell-nom").innerHTML = `<input type="text" class="edit-nom" value="${escapeAttr(nomActuel)}" placeholder="Nom du client">`;
-  row.querySelector(".cell-quantite").innerHTML = `<input type="number" class="edit-quantite" value="${escapeAttr(qteActuelle)}" min="1" placeholder="Quantité">`;
-  row.querySelector(".entry-actions").innerHTML = `
-    <button type="button" class="small save-btn">Enregistrer</button>
-    <button type="button" class="small secondary cancel-btn">Annuler</button>`;
-
-  row.querySelector(".cancel-btn").addEventListener("click", () => applyFilters());
-
-  row.querySelector(".save-btn").addEventListener("click", async () => {
-    const payload = {
-      nom: row.querySelector(".edit-nom").value.trim(),
-      quantite: row.querySelector(".edit-quantite").value,
-    };
-    const res = await fetch(`/api/admin/commandes/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || "Erreur.");
-    loadAllCommandes();
-  });
-}
+["filter-user", "filter-date", "filter-nom"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", applyFilters);
+});
+document.getElementById("filter-reset").addEventListener("click", () => {
+  document.getElementById("filter-user").value = "";
+  document.getElementById("filter-date").value = "";
+  document.getElementById("filter-nom").value = "";
+  applyFilters();
+});
 
 const PRIX_UNITAIRE_FCFA = 250;
 

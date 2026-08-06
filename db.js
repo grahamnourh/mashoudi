@@ -30,9 +30,12 @@ function ensureSchema() {
           latitude DOUBLE PRECISION,
           longitude DOUBLE PRECISION,
           status TEXT NOT NULL DEFAULT 'validee',
+          commentaire TEXT NOT NULL DEFAULT '',
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       `;
+      // Ajoutée après la création initiale de la table : à garder pour les bases déjà existantes.
+      await sql`ALTER TABLE commandes ADD COLUMN IF NOT EXISTS commentaire TEXT NOT NULL DEFAULT ''`;
     })();
   }
   return ready;
@@ -58,11 +61,6 @@ module.exports = {
   setUserRole: async (username, role) => {
     await ensureSchema();
     return sql`UPDATE users SET role = ${role} WHERE username = ${username}`;
-  },
-
-  updatePasswordHash: async (id, passwordHash) => {
-    await ensureSchema();
-    return sql`UPDATE users SET password_hash = ${passwordHash} WHERE id = ${id}`;
   },
 
   // ================= Commandes =================
@@ -102,5 +100,14 @@ module.exports = {
   deleteCommandeAsAdmin: async (id) => {
     await ensureSchema();
     return sql`DELETE FROM commandes WHERE id = ${id} AND status = 'validee'`;
+  },
+
+  // Admin et manager peuvent tous les deux annoter une commande d'un commentaire libre
+  updateCommandeComment: async (id, commentaire) => {
+    await ensureSchema();
+    return sql`
+      UPDATE commandes SET commentaire = ${commentaire}
+      WHERE id = ${id} AND status = 'validee'
+    `;
   },
 };

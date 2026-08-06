@@ -9,11 +9,11 @@ const helmet = require("helmet");
 const bcrypt = require("bcryptjs");
 const {
   findUserByUsername,
-  updatePasswordHash,
   createCommande,
   listAllCommandes,
   updateCommandeAsAdmin,
   deleteCommandeAsAdmin,
+  updateCommandeComment,
 } = require("./db");
 
 const app = express();
@@ -67,14 +67,19 @@ function requireAuth(req, res, next) {
   }
 }
 
-function requireAdmin(req, res, next) {
-  requireAuth(req, res, () => {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Accès réservé aux administrateurs." });
-    }
-    next();
-  });
+function requireRole(...roles) {
+  return (req, res, next) => {
+    requireAuth(req, res, () => {
+      if (!roles.includes(req.user.role)) {
+        return res.status(403).json({ error: "Accès non autorisé." });
+      }
+      next();
+    });
+  };
 }
+
+const requireAdmin = requireRole("admin");
+const requireManager = requireRole("manager");
 
 function csvEscape(value) {
   const str = value === null || value === undefined ? "" : String(value);
@@ -122,28 +127,6 @@ app.get("/api/me", (req, res) => {
   }
 });
 
-// Modifier son propre mot de passe (nécessite le mot de passe actuel)
-app.put("/api/me/password", requireAuth, asyncHandler(async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: "Les deux champs sont obligatoires." });
-  }
-  if (newPassword.length < 6) {
-    return res.status(400).json({ error: "Le nouveau mot de passe doit faire au moins 6 caractères." });
-  }
-
-  const user = await findUserByUsername(req.user.username);
-  if (!user) return res.status(404).json({ error: "Compte introuvable." });
-
-  const valid = await bcrypt.compare(currentPassword, user.password_hash);
-  if (!valid) return res.status(401).json({ error: "Mot de passe actuel incorrect." });
-
-  const newHash = await bcrypt.hash(newPassword, 10);
-  await updatePasswordHash(user.id, newHash);
-  res.json({ ok: true });
-}));
-
 // ============ ROUTES COMMANDES (utilisateur) ============
 
 // Créer une commande : validée immédiatement, l'utilisateur ne la revoit plus ensuite.
@@ -169,6 +152,25 @@ app.post("/api/commandes", requireAuth, asyncHandler(async (req, res) => {
     longitude,
   });
 
+  res.json({ ok: true });
+}));
+
+// ============ ROUTES MANAGER ============
+
+// Voir toutes les commandes VALIDÉES, tous utilisateurs confondus (lecture seule)
+app.get("/api/manager/commandes", requireManager, asyncHandler(async (req, res) => {
+  res.json(await listAllCommandes());
+}));
+
+// ============ ROUTES PARTAGÉES ADMIN + MANAGER ============
+
+// Annoter une commande d'un commentaire libre : seul champ modifiable par le manager.
+app.put("/api/commandes/:id/commentaire", requireRole("admin", "manager"), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  const commentaire = typeof req.body.commentaire === "string" ? req.body.commentaire.trim() : "";
+
+  const result = await updateCommandeComment(id, commentaire);
+  if (result.rowCount === 0) return res.status(404).json({ error: "Commande introuvable." });
   res.json({ ok: true });
 }));
 
@@ -205,15 +207,20 @@ app.delete("/api/admin/commandes/:id", requireAdmin, asyncHandler(async (req, re
   res.json({ ok: true });
 }));
 
+// Prix unitaire fixe utilisé pour calculer le prix total d'une commande.
+const PRIX_UNITAIRE_FCFA = 250;
+
 // Export CSV — uniquement les commandes VALIDÉES.
-// Colonnes dans l'ordre exact : user, nom, quantite, latitude, longitude
+// Colonnes dans l'ordre exact : user, nom, quantite, prix_total_fcfa, latitude, longitude, commentaire
 // Séparateur ";" (et ligne "sep=;") pour qu'Excel en français découpe bien chaque
 // valeur dans sa propre colonne, plutôt que tout mettre dans une seule cellule.
 app.get("/api/admin/commandes/export", requireAdmin, asyncHandler(async (req, res) => {
   const commandes = await listAllCommandes();
-  const header = ["user", "nom", "quantite", "latitude", "longitude"];
+  const header = ["user", "nom", "quantite", "prix_total_fcfa", "latitude", "longitude", "commentaire"];
   const rows = commandes.map((c) =>
-    [c.username, c.nom, c.quantite, c.latitude, c.longitude].map(csvEscape).join(";")
+    [c.username, c.nom, c.quantite, c.quantite * PRIX_UNITAIRE_FCFA, c.latitude, c.longitude, c.commentaire]
+      .map(csvEscape)
+      .join(";")
   );
   const csv = ["sep=;", header.join(";"), ...rows].join("\n");
 

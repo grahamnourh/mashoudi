@@ -1,9 +1,15 @@
 // auth.js — gère la connexion et la redirection si déjà connecté
 
+function urlForRole(role) {
+  if (role === "admin") return "/admin.html";
+  if (role === "manager") return "/manager.html";
+  return "/dashboard.html";
+}
+
 fetch("/api/me")
   .then((r) => r.json())
   .then((data) => {
-    if (data.connected) window.location.href = "/dashboard.html";
+    if (data.connected) window.location.href = urlForRole(data.role);
   });
 
 document.getElementById("login-form").addEventListener("submit", async (e) => {
@@ -25,5 +31,5 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     errorBox.style.display = "block";
     return;
   }
-  window.location.href = "/dashboard.html";
+  window.location.href = urlForRole(data.role);
 });

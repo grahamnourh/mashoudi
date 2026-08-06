@@ -45,22 +45,26 @@ Les tables Postgres (`users`, `commandes`) sont créées automatiquement au prem
 ### Comptes utilisateurs
 Aucune inscription publique dans l'appli : les comptes sont créés uniquement par toi, via un script en local (voir aussi la section déploiement ci-dessus) :
 ```bash
-node create-user.js pseudo mot_de_passe        # compte utilisateur normal
-node create-user.js pseudo mot_de_passe admin  # compte admin
+node create-user.js pseudo mot_de_passe          # compte utilisateur normal
+node create-user.js pseudo mot_de_passe manager  # compte manager
+node create-user.js pseudo mot_de_passe admin    # compte admin
 ```
+Trois rôles existent : `user`, `manager` et `admin`.
 Pour promouvoir un compte déjà existant en admin :
 ```bash
 node make-admin.js pseudo
 ```
-Une déconnexion/reconnexion est nécessaire pour que le rôle soit pris en compte.
-
-Chaque utilisateur peut changer son propre mot de passe depuis l'onglet **Paramètres** de son espace (`/dashboard.html`), en renseignant son mot de passe actuel.
+Une déconnexion/reconnexion est nécessaire pour que le rôle soit pris en compte. Les utilisateurs ne peuvent pas modifier leur mot de passe eux-mêmes ; passe par `make-admin.js`/la base directement si besoin de le changer.
 
 Le panneau admin (`/admin.html`) propose un menu avec deux vues :
 - **Ajouter une commande** : même formulaire que côté utilisateur, la commande créée est immédiatement validée
 - **Liste des commandes** : uniquement les commandes validées, tous comptes confondus, avec le pseudo du propriétaire affiché ; **modification ou suppression** possibles ; une **carte OpenStreetMap** (Leaflet) place un marqueur par commande géolocalisée ; **export CSV** avec une colonne par champ dans cet ordre exact :
   `user, nom, quantite, latitude, longitude`
   Le fichier utilise le point-virgule comme séparateur (au lieu de la virgule), pour que chaque valeur s'ouvre bien dans sa propre colonne dans Excel en français.
+
+L'espace manager (`/manager.html`, accessible depuis un lien sur le dashboard) propose un menu plus simple, en lecture seule sur la liste :
+- **Ajouter une commande** : même formulaire que côté utilisateur/admin
+- **Liste des commandes** : un **tableau** (nom, quantité, utilisateur, date) de toutes les commandes validées, tous comptes confondus — pas de modification/suppression, pas de carte, pas d'export.
 
 ## Structure du projet
 
@@ -75,11 +79,13 @@ commandeapp/
 │   ├── index.html          → connexion
 │   ├── dashboard.html      → formulaire de commande
 │   ├── admin.html          → panneau admin (ajout / liste / carte)
+│   ├── manager.html        → espace manager (ajout / liste en tableau, lecture seule)
 │   ├── css/style.css
 │   └── js/
 │       ├── auth.js
 │       ├── dashboard.js
-│       └── admin.js
+│       ├── admin.js
+│       └── manager.js
 ```
 
 ## Sécurité
@@ -89,7 +95,6 @@ commandeapp/
 - Les routes admin vérifient explicitement le rôle côté serveur (pas seulement côté interface)
 - Le verrouillage "validée" est appliqué **côté serveur** (dans les requêtes SQL elles-mêmes), pas seulement caché dans l'interface — impossible à contourner en modifiant le HTML/JS du navigateur
 - **Anti-bruteforce** : `/api/login` limitée à 15 tentatives par IP toutes les 15 minutes (`express-rate-limit`) — en environnement serverless, ce compteur est en mémoire par instance et n'est donc pas parfaitement global
-- Le changement de mot de passe (`/api/me/password`) exige le mot de passe actuel
 - **En-têtes de sécurité HTTP** via `helmet`
 
 ### Variable `NODE_ENV`
